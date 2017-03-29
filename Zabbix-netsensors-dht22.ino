@@ -1,13 +1,13 @@
-#include <DHT.h>
 #include <EtherCard.h>
+#include <DHT.h>
 
-#define DEBUG		// Comment out for disable
+//#define DEBUG
 
 #define AGENT_VERSION "Zas v1.1"	// Zabbix Arduino Sensors
 #define AGENT_TYPE "arduino-zas"
 #define AGENT_PORT 10050
 
-#define LEDPIN 9	// Debug led
+#define LEDPIN A2	// Debug led
 
 #define DHTPIN1 2
 #define DHTPIN2 3
@@ -16,24 +16,23 @@
 #define DHTPIN5 6
 #define DHTPIN6 7
 
-#define DHTCOUNT 6
+#define DHTCOUNT 3
 #define DHTTYPE DHT22
 
 DHT* sensors[DHTCOUNT] = {
 	new DHT(DHTPIN1, DHTTYPE),
 	new DHT(DHTPIN2, DHTTYPE),
 	new DHT(DHTPIN3, DHTTYPE),
-	new DHT(DHTPIN4, DHTTYPE),
-	new DHT(DHTPIN5, DHTTYPE),
-	new DHT(DHTPIN6, DHTTYPE),
+	//new DHT(DHTPIN4, DHTTYPE),
+	//new DHT(DHTPIN5, DHTTYPE),
+	//new DHT(DHTPIN6, DHTTYPE),
 };
 
-byte mymac[] = { 0x74, 0x12, 0x34, 0x56, 0x78, 0x01 };
-const char host[] PROGMEM = "zabbix.local";	// zabbix.faeton.com.ru
+byte mymac[] = { 0x74, 0x12, 0x34, 0x56, 0x78, 0x02 };
+const char host[] PROGMEM = "zabbix.local";	// zabbix host
 
 byte Ethernet::buffer[512];
 static BufferFiller bfill;
-int pwrCntNow, pwrCntLast = 0;
 
 typedef void(*zabbix_cb)(BufferFiller &buf, String &cmd);
 
@@ -45,18 +44,24 @@ typedef struct {
 static const char cmd_agent_1[] PROGMEM = "agent.ping";
 static const char cmd_agent_2[] PROGMEM = "agent.version";
 static const char cmd_agent_3[] PROGMEM = "agent.type";
+
 static const char cmd_s_1_t[] PROGMEM = "s.1.t";
 static const char cmd_s_1_h[] PROGMEM = "s.1.h";
+
 static const char cmd_s_2_t[] PROGMEM = "s.2.t";
 static const char cmd_s_2_h[] PROGMEM = "s.2.h";
+
 static const char cmd_s_3_t[] PROGMEM = "s.3.t";
 static const char cmd_s_3_h[] PROGMEM = "s.3.h";
+/*
 static const char cmd_s_4_t[] PROGMEM = "s.4.t";
 static const char cmd_s_4_h[] PROGMEM = "s.4.h";
 static const char cmd_s_5_t[] PROGMEM = "s.5.t";
 static const char cmd_s_5_h[] PROGMEM = "s.5.h";
 static const char cmd_s_6_t[] PROGMEM = "s.6.t";
 static const char cmd_s_6_h[] PROGMEM = "s.6.h";
+*/
+
 
 static const ZabbixConfig zabbix_config[] = {
 	{ cmd_agent_1, &zbx_agent_ping },
@@ -68,12 +73,14 @@ static const ZabbixConfig zabbix_config[] = {
 	{ cmd_s_2_h, &zbx_dht },
 	{ cmd_s_3_t, &zbx_dht },
 	{ cmd_s_3_h, &zbx_dht },
+	/*
 	{ cmd_s_4_t, &zbx_dht },
 	{ cmd_s_4_h, &zbx_dht },
 	{ cmd_s_5_t, &zbx_dht },
 	{ cmd_s_5_h, &zbx_dht },
 	{ cmd_s_6_t, &zbx_dht },
 	{ cmd_s_6_h, &zbx_dht },
+	*/
 };
 
 void sendZabbixResponse(BufferFiller &buf, const char* cmd) {
@@ -146,9 +153,9 @@ void serviceZabbixRequest(BufferFiller &buf, word pos) {
 			check += c;
 		}
 		check += '\n'; // every command ends with a newline
-		// now check contains the command name
+					   // now check contains the command name
 
-		// Check it agains the current command
+					   // Check it agains the current command
 		if (cmd == check) {
 #ifdef DEBUG
 			Serial.print(">> ");
@@ -160,18 +167,6 @@ void serviceZabbixRequest(BufferFiller &buf, word pos) {
 	}
 
 	sendZabbixResponse(buf, "ZBX_NOTSUPPORTED");
-}
-
-int memoryTest() {
-	int byteCounter = 0;
-	byte *byteArray;
-	while ((byteArray = (byte*)malloc(byteCounter * sizeof(byte))) != NULL)
-	{
-		byteCounter++;
-		free(byteArray);
-	}
-	free(byteArray);
-	return byteCounter;
 }
 
 static void gotPinged(byte* ptr) {
@@ -190,7 +185,7 @@ void setup() {
 	pinMode(LEDPIN, OUTPUT);
 	digitalWrite(LEDPIN, HIGH);	// Config start, enable led
 
-	// Setup ethernet
+								// Setup ethernet
 	if (ether.begin(sizeof Ethernet::buffer, mymac, 10) == 0) {
 #ifdef DEBUG
 		Serial.println(F("ETH: NO ACCESS"));
@@ -220,12 +215,6 @@ void setup() {
 	{
 		sensors[i]->begin();	// Start sensors.
 	}
-
-#ifdef DEBUG
-	Serial.print("Mem.Free: ");
-	Serial.println(memoryTest());
-	Serial.println("[DONE]");
-#endif // DEBUG
 
 	delay(2000);	// 2 sec for sensors init
 	digitalWrite(LEDPIN, LOW);	// End of config, disable led.
