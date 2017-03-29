@@ -205,7 +205,7 @@ void serviceZabbixRequest(BufferFiller &buf, word pos) {
 		while ((c = pgm_read_byte(ptr++))) {
 			check += c;
 		}
-		check += '\n'; // every command ends with a newline
+		cmd.remove(cmd.indexOf('\n'));	// FIX: Enc28j60 error in some network (random bytes at end of tcp packet)
 
 		if (cmd == check) {
 			(zabbix_config[i].callback)(buf, cmd);
@@ -271,7 +271,7 @@ void setup() {
 #endif // DEBUG
 	}
 
-	json_data = "{\"data\":["
+	json_data = PSTR("{\"data\":["
 #ifdef DHTPIN1
 		"{\"{#SID}\":1}"
 #endif
@@ -290,7 +290,7 @@ void setup() {
 #ifdef DHTPIN6
 		",{\"{#SID}\":6}"
 #endif
-		"]}";
+		"]}");
 
 	delay(2000);	// 2 sec for sensors init
 	digitalWrite(LEDPIN, LOW);	// End of config, disable led.
